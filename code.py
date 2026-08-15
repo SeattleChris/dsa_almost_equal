@@ -175,6 +175,11 @@ class Interval:
         self.end = end
         self.members = members
 
+    def score(self, target):
+        """Determine the scores to be added to all members."""
+        a, b = self.start, self.end
+        return sum(abs(h[j] - h[k]) <= target for j in range(a, b) for k in range(j+1, b+1))
+
     @classmethod
     def origin(cls, start: int, end: int, *members: list[int]):
         tmp = cls(start, end, set(members))
@@ -217,8 +222,7 @@ def overlap_solve(h, target, queries):
     result = [0 for _ in queries]
     intervals: list[Interval] = merge_intervals(queries)
     for curr in intervals:
-        a, b = curr.start, curr.end
-        score = sum(abs(h[j] - h[k]) <= target for j in range(a, b) for k in range(j+1, b+1))
+        score = curr.score(target)
         for idx in curr.members:
             result[idx] += score
         if hasattr(curr, '_origin') and (c := curr.end) <= (d := curr._end) \
