@@ -1,7 +1,7 @@
 # import os
-from functools import cache
-from itertools import combinations, chain
 from collections import defaultdict
+from functools import cache
+from itertools import chain, combinations
 
 
 def cache_solve(h, target, queries):
@@ -168,69 +168,6 @@ def fly_solve(h, target, queries):
                 score += res
         results.append(score)
     return results
-
-class Interval:
-    def __init__(self, start: int, end: int, members: set[int]):
-        self.start = start
-        self.end = end
-        self.members = members
-
-    def score(self, target):
-        """Determine the scores to be added to all members."""
-        a, b = self.start, self.end
-        return sum(abs(h[j] - h[k]) <= target for j in range(a, b) for k in range(j+1, b+1))
-
-    @classmethod
-    def origin(cls, start: int, end: int, *members: list[int]):
-        tmp = cls(start, end, set(members))
-        tmp._start = tmp.start
-        tmp._end = tmp._end
-        tmp._origin: int = members.pop()
-        return tmp
-
-    def __lt__(self, other):
-        return self.start < other.start
-
-    def __union__(self, other):
-        a, b = (self, other) if self.start < other.start else (other, self)
-        if a.end <= b.start:  # No overlap, return sorted intervals.
-            return (a, b)
-        if a.end >= b.end:  # 'b' is completely within 'a' interval :: a_s ... b_s ... b_e ... a_e
-            last = Interval(b.end, a.end, a.members)
-            a.end = b.start
-            b.members |= a.members
-            return (a, b, last)
-        mid = Interval(b.start, a.end, b.members | a.members)
-        b.start = a.end
-        a.end = b.start
-        return (a, mid, b)  # b starts in a, b extends beyond a :: a_s ... b_s ... a_e ... b_e
-
-
-def merge_intervals(intervals: list[tuple[int, int]]) -> (list[Interval]):
-    # 1. Sort intervals by their start values, recording their original indices
-    intervals = sorted((Interval.origin(s, e, idx) for idx, (s, e) in enumerate(intervals)))
-    merged, pre = [], intervals[0]
-    for cur in intervals[1:]:
-        *ext, pre = pre | cur
-        merged.extend(ext)
-    merged.append(pre)
-    return merged
-
-
-def overlap_solve(h, target, queries):
-    """1min 29sec. Determine overlapping queries to reduce number of pairs to compute."""
-    result = [0 for _ in queries]
-    intervals: list[Interval] = merge_intervals(queries)
-    for curr in intervals:
-        score = curr.score(target)
-        for idx in curr.members:
-            result[idx] += score
-        if hasattr(curr, '_origin') and (c := curr.end) <= (d := curr._end) \
-            and ((a := curr._start) != (b := curr.start) or c != d):
-            score = sum(abs(h[j] - h[k]) <= target for j in range(a, b) for k in range(b+1, d+1))
-            score += sum(abs(h[j] - h[k]) <= target for j in range(b, c) for k in range(c+1, d+1))
-            result[curr._origin] += score
-    return result
 
 
 def match_solve(h, target, queries):
